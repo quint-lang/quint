@@ -1,0 +1,8 @@
+//
+// Created by BY210033 on 2022/11/25.
+//
+
+#ifndef QUINT_DIAGNOSTIC_H
+#define QUINT_DIAGNOSTIC_H
+
+#endif //QUINT_DIAGNOSTIC_H
