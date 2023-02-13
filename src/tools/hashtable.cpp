@@ -1,4 +1,4 @@
-// ===--- qsim.h - Quint Language  ---------------------------------===//
+// ===--- hashtable.cpp - Quint Language  ---------------------------------===//
 //
 // This source file is part of the QuintLang.org open source project
 // Copyright (c) 2022.  Quint Language project authors
@@ -9,27 +9,8 @@
 //
 // ===----------------------------------------------------------------------===//
 //
-// This file defines the quantum simulation interface.
+// This
 //
 // ===----------------------------------------------------------------------===//
 
-//
-// Created by BY210033 on 2022/11/25.
-//
-
-#ifndef QUINT_QSIM_H
-#define QUINT_QSIM_H
-
-struct Sigma {
-
-};
-
-struct QState {
-
-};
-
-class QSim {
-
-};
-
-#endif //QUINT_QSIM_H
+#include "quint/tools/hashtable.h"
