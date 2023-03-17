@@ -62,9 +62,9 @@ set(LIBS
         LLVMLinker
         )
 
-add_mlir_library(qcor-mlir-api SHARED ${SRC} LINK_LIBS PUBLIC ${LIBS})
+add_mlir_library(quint-mlir-api SHARED ${SRC} LINK_LIBS PUBLIC ${LIBS})
 
 target_include_directories(
-        qcor-mlir-api PUBLIC .
+        quint-mlir-api PUBLIC .
         include/dialect
         ${CMAKE_BINARY_DIR}/mlir/include/dialect)
