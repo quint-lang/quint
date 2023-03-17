@@ -1,0 +1,6 @@
+add_executable(UnComputeTest UnComputeTest.cpp)
+target_include_directories(UnComputeTest PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(UnComputeTest PRIVATE ${PROJECT_SOURCE_DIR}/tpl/eigen)
+target_include_directories(UnComputeTest PRIVATE ${PROJECT_SOURCE_DIR}/tpl/argparse)
+target_include_directories(UnComputeTest PRIVATE ${PROJECT_SOURCE_DIR}/tpl/spdlog/include)
+target_link_libraries(UnComputeTest quint_core)
