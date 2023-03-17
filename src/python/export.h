@@ -28,6 +28,8 @@ namespace quint {
 
     void export_lang(py::module &m);
 
+    void export_misc(py::module &m);
+
 }
 
 #endif //QUINT_EXPORT_H

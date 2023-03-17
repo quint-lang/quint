@@ -142,4 +142,13 @@ namespace quint {
 
 #include "common/logger.h"
 
+namespace quint {
+
+    std::string get_python_package_dir();
+
+
+    void set_python_package_dir(const std::string &dir);
+
+}
+
 #endif //QUINT_CORE_H

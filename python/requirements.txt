@@ -1,0 +1,12 @@
+cmake
+Pillow
+pybind11
+GitPython
+pylint
+requests==2.26
+twine
+wheel
+numpy
+ninja; platform_system != 'Windows'
+matplotlib
+scipy

@@ -1,0 +1,5 @@
+include quint/_lib/core/*.so
+include quint/_lib/core/*.pyd
+
+global-exclude *.pyc *.pyo
+global-exclude ffmpeg

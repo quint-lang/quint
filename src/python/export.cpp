@@ -11,5 +11,6 @@ namespace quint {
 //
 //        }
         export_lang(m);
+        export_misc(m);
     }
 }
