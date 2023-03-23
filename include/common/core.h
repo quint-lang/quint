@@ -138,14 +138,45 @@ namespace quint {
 
 } // namespace quint
 
-
+//******************************************************************************
+//                               String Utils
+//******************************************************************************
 
 #include "common/logger.h"
 
 namespace quint {
 
-    std::string get_python_package_dir();
+    namespace zip {
+        void write(std::string fn, const uint8 *data, std::size_t len);
+        void write(const std::string &fn, const std::string &data);
+        std::vector<uint8> read(const std::string fn, bool verbose = false);
+    }
 
+    inline bool ends_with(std::string const &str, std::string const &ending) {
+        if (ending.size() > str.size())
+            return false;
+        else
+            return std::equal(ending.begin(), ending.end(), str.end() - ending.size());
+    }
+}
+
+//******************************************************************************
+//                                   Misc.
+//******************************************************************************
+
+namespace quint {
+
+    extern int __trash__;
+
+    template<typename T>
+    void trash(T &&t) {
+        static_assert(!std::is_same<T, void>::value, "");
+        __trash__ = *reinterpret_cast<uint8 *>(&t);
+    }
+
+    std::string get_repo_dir();
+
+    std::string get_python_package_dir();
 
     void set_python_package_dir(const std::string &dir);
 

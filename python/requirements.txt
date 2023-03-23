@@ -10,3 +10,5 @@ numpy
 ninja; platform_system != 'Windows'
 matplotlib
 scipy
+graphviz
+networkx

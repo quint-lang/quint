@@ -4,7 +4,7 @@ add_library(llvm_runtime ${LLVM_RUNTIME_SRC})
 
 target_include_directories(llvm_runtime
         PRIVATE
-        ${PROJECT_SOURCE_DIR}
+        ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/tpl/eigen
         ${PROJECT_SOURCE_DIR}/tpl/spdlog/include
         ${LLVM_INCLUDE_DIRS}

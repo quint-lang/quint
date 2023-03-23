@@ -107,6 +107,7 @@ class ASTTransformerContext:
                  file=None,
                  src=None,
                  start_lineno=None,
+                 ast_builder=None,
                  global_vars=[]):
         self.func = func
         self.local_scopes = []
@@ -121,6 +122,7 @@ class ASTTransformerContext:
                 break
         self.lineno_offset = start_lineno - 1
         self.visited_funcdef = False
+        self.ast_builder = ast_builder
         self.func_arguments = []
         self.kernel_args = []
         self.src_info_stack = []

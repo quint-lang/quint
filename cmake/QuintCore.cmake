@@ -16,6 +16,7 @@ set(INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/python/quint/_lib)
 file(GLOB QUINT_CORE_SRC
     "src/ir/*.cpp"
     "src/jit/*.cpp"
+    "src/system/*.cpp"
     "src/program/*.cpp"
     "src/transforms/*.cpp"
     "src/runtime/hvm/*.cpp"
@@ -85,9 +86,21 @@ if (QUINT_WITH_LLVM)
             llvm_map_components_to_libnames(llvm_aarch64_libs AArch64)
         endif()
 
-        add_subdirectory(src/rhi/llvm)
-        add_subdirectory(src/runtime/llvm)
+        add_subdirectory(src/codegen/cpu)
+        add_subdirectory(src/runtime/cpu)
+        add_subdirectory(src/rhi/cpu)
 
+        target_link_libraries(${CORE_LIBRARY_NAME} PRIVATE cpu_codegen)
+        target_link_libraries(${CORE_LIBRARY_NAME} PRIVATE cpu_runtime)
+        target_link_libraries(${CORE_LIBRARY_NAME} PRIVATE cpu_rhi)
+
+        add_subdirectory(src/rhi/llvm)
+        add_subdirectory(src/codegen/llvm)
+        add_subdirectory(src/runtime/llvm)
+        add_subdirectory(src/runtime/program_impls/llvm)
+
+        target_link_libraries(${CORE_LIBRARY_NAME} PRIVATE llvm_program_impl)
+        target_link_libraries(${CORE_LIBRARY_NAME} PRIVATE llvm_codegen)
         target_link_libraries(${CORE_LIBRARY_NAME} PRIVATE llvm_runtime)
 
         if (LINUX)

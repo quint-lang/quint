@@ -6,6 +6,7 @@
 #define QUINT_PROGRAM_IMPL_H
 
 #include "program/compile_config.h"
+#include "program/kernel_profiler.h"
 
 namespace quint::lang {
 

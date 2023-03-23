@@ -38,6 +38,8 @@ namespace quint::lang {
 
         std::unique_ptr<KernelProfilerBase> profiler{nullptr};
 
+        Program();
+
         ~Program();
 
         CompileConfig &this_thread_config() {

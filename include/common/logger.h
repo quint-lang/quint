@@ -49,6 +49,11 @@ namespace spdlog {
         QUINT_UNREACHABLE                            \
     }
 
+#define QUINT_ERROR_UNLESS(condition, ...) \
+  if (!(condition)) {                      \
+    QUINT_ERROR(__VA_ARGS__);              \
+  }
+
 #define QUINT_ASSERT(x)   QUINT_ASSERT_INFO((x), "Assertion failure" #x)
 #define QUINT_ASSERT_INFO(x, ...)             \
 {                                           \

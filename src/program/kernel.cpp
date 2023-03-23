@@ -48,15 +48,21 @@ namespace quint::lang {
     }
 
     Kernel::Kernel(Program &program, const std::function<void()> &func, const std::string &name) {
-
+        this->init(program, func, name);
     }
 
     Kernel::Kernel(Program &program, const std::function<void(Kernel *)> &func, const std::string &name) {
-
+        this->init(program,
+                   [&] { return func(this); }, name);
     }
 
     Kernel::Kernel(Program &program, std::unique_ptr<IRNode> &&ir, const std::string &name) {
-
+        this->ir = std::move(ir);
+        this->program = &program;
+        is_accessor = false;
+        is_evaluator = false;
+        compiled_ = nullptr;
+        ir_is_ast_ = false;
     }
 
     void Kernel::compile() {
@@ -113,6 +119,20 @@ namespace quint::lang {
     }
 
     void Kernel::init(Program &program, const std::function<void()> &func, const std::string &name) {
+        this->lowered_ = false;
+        this->program = &program;
+
+        is_accessor = false;
+        is_evaluator = false;
+        compiled_ = nullptr;
+        context = std::make_unique<FrontendContext>();
+        ir = context->get_root();
+        ir_is_ast_ = true;
+
+        {
+            CurrentCallableGuard _(this->program, this);
+            func();
+        }
 
     }
 
