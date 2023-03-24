@@ -97,13 +97,18 @@ namespace quint {
                     py::gil_scoped_release release;
                      return &program->kernel(body, name);
                 },
-                py::return_value_policy::reference);
+                py::return_value_policy::reference)
+            .def("decl_scalar_arg",
+                 [&](Program *program, const DataType &dt) {
+                     return program->current_callable->insert_scalar_arg(dt);
+            });
 
         py::class_<Kernel>(m, "Kernel")
             .def("get_ret_int", &Kernel::get_ret_int)
             .def("get_ret_uint", &Kernel::get_ret_uint)
             .def("get_ret_float", &Kernel::get_ret_float)
             .def("make_launch_context", &Kernel::make_launch_context)
+            .def("compile", &Kernel::compile)
             .def("ast_builder",
                  [](Kernel *self) -> ASTBuilder * {
                      return &self->context->builder();
@@ -123,12 +128,22 @@ namespace quint {
                  &Kernel::LaunchContextBuilder::set_arg_external_array_with_shape)
             .def("set_extra_arg_int", &Kernel::LaunchContextBuilder::set_extra_arg_int);
 
+        py::class_<Expr> expr(m, "Expr");
+        expr.def("snode", &Expr::snode, py::return_value_policy::reference)
+            .def("set_tb", &Expr::set_tb)
+            .def("set_adjoint", &Expr::set_adjoint)
+            .def("set_dual", &Expr::set_dual);
+
         py::class_<SNode>(m, "SNode")
             .def(py::init<>());
 
         py::class_<Type>(m, "Type").def("to_string", &Type::to_string);
 
         py::class_<Stmt>(m, "Stmt");
+
+
+        m.def("make_arg_load_expr",
+              Expr::make<ArgLoadExpression, int, const DataType &, bool>);
     }
 
 }

@@ -134,6 +134,8 @@ namespace quint::lang {
   }
 
         DEFINE_VISIT(Block);
+
+#undef DEFINE_VISIT
     };
 
     class IRNode {

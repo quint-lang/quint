@@ -15,6 +15,41 @@ namespace quint::lang {
 
     int data_type_size(DataType t);
 
+    template <typename T>
+    inline DataType get_data_type() {
+        if (std::is_same<T, float32>()) {
+            return PrimitiveType::f32;
+        } else if (std::is_same<T, float64>()) {
+            return PrimitiveType::f64;
+        } else if (std::is_same<T, bool>()) {
+            return PrimitiveType::u1;
+        } else if (std::is_same<T, int8>()) {
+            return PrimitiveType::i8;
+        } else if (std::is_same<T, int16>()) {
+            return PrimitiveType::i16;
+        } else if (std::is_same<T, int32>()) {
+            return PrimitiveType::i32;
+        } else if (std::is_same<T, int64>()) {
+            return PrimitiveType::i64;
+        } else if (std::is_same<T, uint8>()) {
+            return PrimitiveType::u8;
+        } else if (std::is_same<T, uint16>()) {
+            return PrimitiveType::u16;
+        } else if (std::is_same<T, uint32>()) {
+            return PrimitiveType::u32;
+        } else if (std::is_same<T, uint64>()) {
+            return PrimitiveType::u64;
+        } else {
+            QUINT_NOT_IMPLEMENTED;
+        }
+    }
+
+    inline bool is_real(DataType dt) {
+        return dt->is_primitive(PrimitiveTypeID::f16) ||
+               dt->is_primitive(PrimitiveTypeID::f32) ||
+               dt->is_primitive(PrimitiveTypeID::f64);
+    }
+
     inline bool is_integral(DataType dt) {
         // todo quantum integer type
         return dt->is_primitive(PrimitiveTypeID::i8) ||

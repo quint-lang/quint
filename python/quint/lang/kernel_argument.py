@@ -7,3 +7,7 @@ class KernelArgument:
         self.annotation = _annotation
         self.name = _name
         self.default = _default
+
+
+def decl_scalar_arg(dtype):
+    pass
