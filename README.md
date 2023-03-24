@@ -1,4 +1,4 @@
-<img src="doc/img/quint.png">
+<img src="doc/img/Logo.png">
 
 # Quint: Scientific *Pro*gramming *Lan*guages
 [![License](https://img.shields.io/npm/l/mithril.svg)](https://mit-license.org/)

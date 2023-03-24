@@ -58,6 +58,7 @@ namespace quint::lang {
         finalized_ = false;
 
         Timelines::get_instance().set_enabled(config.timeline);
+        int qunit = 1;
     }
 
     Program::~Program() {
