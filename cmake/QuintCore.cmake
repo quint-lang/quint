@@ -20,6 +20,8 @@ file(GLOB QUINT_CORE_SRC
     "src/program/*.cpp"
     "src/transforms/*.cpp"
     "src/runtime/hvm/*.cpp"
+    "src/codegen/*.cpp"
+    "src/rhi/*.cpp"
 )
 
 if(QUINT_WITH_LLVM)

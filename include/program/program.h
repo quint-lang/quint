@@ -72,7 +72,7 @@ namespace quint::lang {
             return *kernels.back();
         }
 
-        FunctionType compile(Kernel *kernel);
+        FunctionType compile(Kernel &kernel);
 
         void finalize();
 
@@ -84,6 +84,10 @@ namespace quint::lang {
 
         ASTBuilder *current_ast_builder() {
             return current_callable ? &current_callable->context->builder() : nullptr;
+        }
+
+        ProgramImpl *get_program_impl() {
+            return program_impl_.get();
         }
 
     private:

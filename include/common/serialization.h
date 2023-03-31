@@ -52,6 +52,30 @@ namespace quint {
 
         template <size_t DelimN>
         struct StrDelimSplitter {
+            template <size_t StrsN>
+            static constexpr std::array<std::string_view, DelimN> make(
+                    const char (&str)[StrsN],
+                    char delim) {
+                std::array<std::string_view, DelimN> res;
+                const char *head = &(str[0]);
+                size_t si = 0;
+                size_t cur_head_i = 0;
+                size_t ri = 0;
+                while (si < StrsN) {
+                    if (str[si] != delim) {
+                        si += 1;
+                    } else {
+                        res[ri] = {head, (si - cur_head_i)};
+                        ++ri;
+                        si += 2;  // skip ", "
+                        cur_head_i = si;
+                        head = &(str[cur_head_i]);
+                    }
+                }
+                // `StrsN - 1` because the last char is '\0'.
+                res[ri] = {head, (StrsN - 1 - cur_head_i)};
+                return res;
+            }
         };
 
         template<typename SER, size_t N, typename T>

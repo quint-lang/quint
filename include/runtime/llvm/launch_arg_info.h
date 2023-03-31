@@ -5,6 +5,8 @@
 #ifndef QUINT_LAUNCH_ARG_INFO_H
 #define QUINT_LAUNCH_ARG_INFO_H
 
+#include <vector>
+
 namespace quint::lang {
     struct LLVMLaunchArgInfo {
         bool is_array{false};
@@ -14,6 +16,10 @@ namespace quint::lang {
             return !(*this == other);
         }
     };
+
+    class Kernel;
+
+    std::vector<LLVMLaunchArgInfo> infer_launch_args(const Kernel *kernel);
 }
 
 #endif //QUINT_LAUNCH_ARG_INFO_H

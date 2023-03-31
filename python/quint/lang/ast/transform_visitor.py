@@ -2,13 +2,24 @@ import ast
 import collections.abc
 import warnings
 from collections import ChainMap
+from sys import version_info
 
-from quint.utils.exceptions import QuintException
+from quint.utils.exceptions import QuintException, QuintSyntaxException
 from quint.lang.ast.ast_transformer_utils import Visitor
 from quint.lang.struct import Register
 from quint.lang.qtype import RegisterType, QIntType, QInt, QBool
 from quint.lang.runtime import expr_init
-from quint.lang.ops import Operation
+from quint.lang.ops import Operation, cast
+from quint.lang.kernel_argument import decl_scalar_arg
+from quint.typedefs import primitive_types
+from quint.lang import expr
+from quint.lang import ops as quint_ops
+from quint.lang import runtime
+
+if version_info < (3, 9):
+    from astunparse import unparse
+else:
+    from ast import unparse
 
 
 class Pair:
@@ -40,6 +51,10 @@ class TransformVisitor(Visitor):
                 tg = ctx.func_arguments[i].annotation.make()
                 ctx.global_reg[arg.arg] = tg
                 ctx.create_variable(arg.arg, tg)
+            else:
+                ctx.create_variable(arg.arg, decl_scalar_arg(ctx.func_arguments[i].annotation))
+        # remove original args
+        node.args.args = []
 
         with ctx.variable_scope_guard():
             build_stmts(ctx, node.body)
@@ -58,6 +73,8 @@ class TransformVisitor(Visitor):
         for node_target in node.targets:
             TransformVisitor.build_assign_unpack(ctx, node_target, values)
 
+        return None
+
     @staticmethod
     def visit_Call(ctx, node):
         build_stmt.visit(ctx, node.func)
@@ -68,7 +85,12 @@ class TransformVisitor(Visitor):
 
         args = []
         for arg in node.args:
-            args.append(arg.ptr)
+            if isinstance(arg, ast.Starred):
+                arg_list = arg.ptr
+                for i in arg_list:
+                    args.append(i)
+            else:
+                args.append(arg.ptr)
 
         keywords = dict(ChainMap(*[{keyword.ptr.first: keyword.ptr.second} for keyword in node.keywords]))
         if isinstance(func, RegisterType):
@@ -84,6 +106,9 @@ class TransformVisitor(Visitor):
             node.ptr = func(node.func.caller, *args, **keywords)
             return node.ptr
 
+        # todo handler quantum type
+        # TransformVisitor.warn_if_is_external_func(ctx, node)
+
         node.ptr = func(*args, **keywords)
         return node.ptr
 
@@ -96,6 +121,12 @@ class TransformVisitor(Visitor):
             control_flag = True
             ctx.local_reg[node.test.ptr.name] = node.test.ptr
 
+        # if False:
+        #     if node.test.ptr:
+        #         build_stmts(ctx, node.body)
+        #     else:
+        #         build_stmts(ctx, node.orelse)
+
         with ctx.if_guard(node):
             if control_flag:
                 ctx.enter_if_scope(node.test.ptr)
@@ -107,10 +138,14 @@ class TransformVisitor(Visitor):
                     build_stmts(ctx, node.orelse)
                     ctx.exit_if_scope()
             else:
-                if node.test.ptr:
-                    build_stmts(ctx, node.body)
-                else:
-                    build_stmts(ctx, node.orelse)
+                runtime.begin_frontend_if(ctx.ast_builder, node.test.ptr)
+                ctx.ast_builder.begin_frontend_if_true()
+                build_stmts(ctx, node.body)
+                ctx.ast_builder.pop_scope()
+                ctx.ast_builder.begin_frontend_if_false()
+                build_stmts(ctx, node.orelse)
+                ctx.ast_builder.pop_scope()
+        return None
 
     @staticmethod
     def visit_AugAssign(ctx, node):
@@ -147,7 +182,7 @@ class TransformVisitor(Visitor):
     def build_call_if_is_builtin(ctx, node, args, keywords):
         func = node.func.ptr
         replace_func = {
-            id(print): print,
+            id(print): runtime.quint_print,
             id(min): min,
             id(max): max,
             id(int): int,
@@ -173,6 +208,43 @@ class TransformVisitor(Visitor):
                     module="quint")
             return True
         return False
+
+    @staticmethod
+    def build_call_if_is_type(ctx, node, args, keywords):
+        func = node.func.ptr
+        if id(func) in primitive_types.type_ids:
+            if len(args) != 1 or keywords:
+                raise QuintSyntaxException("A primitive type can only decorate a single expression")
+            # todo handler quantum type
+
+            if isinstance(args[0], expr.Expr):
+                node.ptr = cast(args[0], func)
+            else:
+                node.ptr = expr.Expr(args[0], dtype=func)
+            return True
+        return False
+
+    @staticmethod
+    def warn_if_is_external_func(ctx, node):
+        func = node.func.ptr
+        if hasattr(func, "_is_quint_function") or hasattr(
+                func, "_is_wrapped_kernel"):
+            return
+        if hasattr(
+            func, "__module__"
+        ) and func.__module__ and func.__module__.startwith("quint."):
+            return
+        name = unparse(node.func).strip()
+        warnings.warn_explicit(
+            f'Calling non-quint function "{name}". '
+            f'Scope inside the function is not processed by the Quint AST transformer. '
+            f'The function may not work as expected. Proceed with caution! '
+            f'Maybe you can consider turning it into a @quint.func?',
+            UserWarning,
+            ctx.file,
+            node.lineno + ctx.lineno_offset,
+            module="quint"
+        )
 
     @staticmethod
     def build_assign_unpack(ctx, node_target, values):
@@ -205,6 +277,12 @@ class TransformVisitor(Visitor):
             ctx.create_variable(target.id, value)
         else:
             var = build_stmt.visit(ctx, target)
+            try:
+                var._assign(value)
+            except AttributeError:
+                raise QuintSyntaxException(
+                    f"Variable '{unparse(target).strip()}' cannot be assigned. May be it is not a Quint Support type"
+                )
         return var
 
     @staticmethod
@@ -225,27 +303,36 @@ class TransformVisitor(Visitor):
                       Operation("Or", None, [], [])]
         }
 
-        # ops_normal = {
-        #     ast.Eq: lambda l, r: l == r,
-        #     ast.NotEq: lambda l, r: l != r,
-        #     ast.Lt: lambda l, r: l < r,
-        #     ast.LtE: lambda l, r: l <= r,
-        #     ast.Gt: lambda l, r: l > r,
-        #     ast.GtE: lambda l, r: l >= r,
-        # }
-        #
-        # ops_static = {
-        #     ast.In: lambda l, r: l in r,
-        #     ast.NotIn: lambda l, r: l not in r,
-        #     ast.Is: lambda l, r: l is r,
-        #     ast.IsNot: lambda l, r: l is not r,
-        # }
+        ops_normal = {
+            ast.Eq: lambda l, r: l == r,
+            ast.NotEq: lambda l, r: l != r,
+            ast.Lt: lambda l, r: l < r,
+            ast.LtE: lambda l, r: l <= r,
+            ast.Gt: lambda l, r: l > r,
+            ast.GtE: lambda l, r: l >= r,
+        }
+
+        ops_static = {
+            ast.In: lambda l, r: l in r,
+            ast.NotIn: lambda l, r: l not in r,
+            ast.Is: lambda l, r: l is r,
+            ast.IsNot: lambda l, r: l is not r,
+        }
 
         operands = [node.left.ptr] + [comparator.ptr for comparator in node.comparators]
         val = True
         for i, node_op in enumerate(node.ops):
             left = operands[i]
             right = operands[i + 1]
+            if isinstance(node_op, (ast.Is, ast.IsNot)):
+                name = "is" if isinstance(node_op, ast.Is) else "is not"
+                warnings.warn_explicit(
+                    f'Operator "{name}" in Quint scope is deprecated. Please avoid using it.',
+                    DeprecationWarning,
+                    ctx.file,
+                    node.lineo + ctx.lineno_offset,
+                    module="quint"
+                )
             if isinstance(left, Register):
                 val = QBool()
                 val.local = True
@@ -253,13 +340,13 @@ class TransformVisitor(Visitor):
                     op_list = special_ops.get(type(node_op))
                     bool_list = []
                     if isinstance(right, Register):
-                        for index in range(len(op_list)-1):
+                        for index in range(len(op_list) - 1):
                             temp = QBool()
                             op_list[index].target = temp
                             op_list[index].ancs = [left, right]
                             bool_list.append(temp)
                     else:
-                        for index in range(len(op_list)-1):
+                        for index in range(len(op_list) - 1):
                             temp = QBool()
                             op_list[index].target = temp
                             op_list[index].ancs = [left]
@@ -280,6 +367,20 @@ class TransformVisitor(Visitor):
                     ctx.append_op(op)
                 else:
                     raise QuintException("Unsupported operation in Quint")
+            else:
+                op = ops_normal.get(type(node_op))
+                if op is None:
+                    if type(node_op) in ops_static:
+                        raise QuintSyntaxException(
+                            f'"{type(node_op).__name__}" is only supported inside `quint.static`'
+                        )
+                    else:
+                        raise QuintSyntaxException(
+                            f'"{type(node_op).__name__}" is not supported in Quint Kernels.'
+                        )
+                val = quint_ops.bit_and(val, op(left, right))
+        if not isinstance(val, (QBool, bool)):
+            val = quint_ops.cast(val, primitive_types.i32)
         node.ptr = val
         return node.ptr
 
@@ -288,6 +389,31 @@ class TransformVisitor(Visitor):
         build_stmt.visit(ctx, node.elts)
         node.ptr = [elt.ptr for elt in node.elts]
         return node.ptr
+
+    @staticmethod
+    def visit_Num(ctx, node):
+        node.ptr = node.n
+        return node.ptr
+
+    @staticmethod
+    def visit_Str(ctx, node):
+        node.ptr = node.s
+        return node.ptr
+
+    @staticmethod
+    def visit_Bytes(ctx, node):
+        node.ptr = node.s
+        return node.ptr
+
+    @staticmethod
+    def visit_NameConstant(ctx, node):
+        node.ptr = node.value
+        return node.ptr
+
+    @staticmethod
+    def visit_Expr(ctx, node):
+        build_stmt.visit(ctx, node.value)
+        return None
 
 
 build_stmt = TransformVisitor()

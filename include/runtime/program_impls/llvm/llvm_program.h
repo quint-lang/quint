@@ -23,7 +23,17 @@ namespace quint::lang {
     public:
         LLVMProgramImpl(CompileConfig &config, KernelProfilerBase *profiler);
 
+        FunctionType compile(Kernel *kernel) override;
+
         void prepare_runtime_context(RuntimeContext *ctx) override;
+
+        QuintLLVMContext *get_llvm_context() {
+            return runtime_exec_->get_llvm_context();
+        }
+
+        LLVMRuntimeExecutor *get_runtime_executor() {
+            return runtime_exec_.get();
+        }
 
         ParallelExecutor compilation_workers;
     private:
@@ -32,6 +42,8 @@ namespace quint::lang {
         std::unique_ptr<LLVMOfflineCache> cache_data_;
         std::unique_ptr<LLVMOfflineCacheFileReader> cache_reader_;
     };
+
+    LLVMProgramImpl *get_llvm_program(Program *prog);
 
 }
 

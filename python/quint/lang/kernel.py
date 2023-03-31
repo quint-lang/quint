@@ -146,6 +146,7 @@ class quantum(object):
 
         assert key not in self.runtime.compiled_functions
         self.compiled_kernels[key] = quint_kernel
+        quint_kernel.compile()
         self.compiled = True
 
     def extract_arguments(self):
@@ -158,7 +159,9 @@ class quantum(object):
             self.arguments.append(KernelArgument(annotation, param.name, param.default))
 
     def __call__(self, *args, **kwargs):
-        pass
+        args = process_args(self, args, kwargs)
+        self.compile(*args)
+        return 1
 
     def convert_python_data_to_kernel(self):
         pass

@@ -123,6 +123,19 @@ namespace quint {
     using float32 = float;
     using float64 = double;
 
+    using real = float32;
+
+    real constexpr operator"" _f(long double v) {
+        return real(v);
+    }
+    real constexpr operator"" _f(unsigned long long v) {
+        return real(v);
+    }
+
+    float64 constexpr operator"" _f64(long double v) {
+        return float64(v);
+    }
+
 #ifdef QUINR_USE_DOUBLE
     using real = float64;
 #else
@@ -159,6 +172,8 @@ namespace quint {
             return std::equal(ending.begin(), ending.end(), str.end() - ending.size());
     }
 }
+
+#include "common/serialization.h"
 
 //******************************************************************************
 //                                   Misc.

@@ -1,5 +1,10 @@
 import inspect
 
+from quint.lang.util import cook_type
+from quint.lang.runtime import get_runtime
+from quint.lang.expr import Expr
+from quint._lib import core
+
 
 class KernelArgument:
 
@@ -10,4 +15,6 @@ class KernelArgument:
 
 
 def decl_scalar_arg(dtype):
-    pass
+    dtype = cook_type(dtype)
+    arg_id = get_runtime().prog.decl_scalar_arg(dtype)
+    return Expr(core.make_arg_load_expr(arg_id, dtype, False))

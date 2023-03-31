@@ -13,6 +13,7 @@
 #include <map>
 
 #include "common/core.h"
+#include "ir/snode.h"
 #include "ir/type_factory.h"
 
 #ifdef QUINT_WITH_LLVM
@@ -27,6 +28,43 @@ namespace quint::lang {
     class Stmt;
     class SNode;
     using pStmt = std::unique_ptr<Stmt>;
+
+    enum class SNodeAccessFlag : int { block_local, read_only, mesh_local };
+
+    class MemoryAccessOptions {
+    private:
+        std::unordered_map<SNode *, std::unordered_set<SNodeAccessFlag>> options_;
+
+    public:
+        void add_flag(SNode *snode, SNodeAccessFlag flag) {
+            options_[snode].insert(flag);
+        }
+
+        bool has_flag(SNode *snode, SNodeAccessFlag flag) const {
+            if (auto it = options_.find(snode); it != options_.end())
+                return it->second.count(flag) != 0;
+            else
+                return false;
+        }
+
+        std::vector<SNode *> get_snode_with_flag(SNodeAccessFlag flag) const {
+            std::vector<SNode *> snode;
+            for (const auto &opt : options_) {
+                if (has_flag(opt.first, flag)) {
+                    snode.push_back(opt.first);
+                }
+            }
+            return snode;
+        }
+
+        void clear() {
+            options_.clear();
+        }
+
+        std::unordered_map<SNode *, std::unordered_set<SNodeAccessFlag>> get_all() const {
+            return options_;
+        }
+    };
 
 #ifdef QUINT_WITH_LLVM
     using stmt_vector = llvm::SmallVector<pStmt, 8>;
@@ -193,11 +231,89 @@ namespace quint::lang {
     return new_stmt;                                                \
   }
 
+    class StmtField {
+    public:
+        StmtField() = default;
+
+        virtual bool equal(const StmtField *other) const = 0;
+
+        virtual ~StmtField() = default;
+    };
+
+    template<typename T>
+    class StmtFieldNumeric final : public StmtField {
+    private:
+        std::variant<T *, T> value_;
+
+    public:
+        explicit StmtFieldNumeric(T *value) : value_(value) {
+        }
+
+        explicit StmtFieldNumeric(T value) : value_(value) {
+        }
+
+        bool equal(const StmtField *other_generic) const override {
+            if (auto other = dynamic_cast<const StmtFieldNumeric *>(other_generic)) {
+                if (std::holds_alternative<T *>(other->value_) &&
+                    std::holds_alternative<T *>(value_)) {
+                    return *(std::get<T *>(other->value_)) == *(std::get<T *>(value_));
+                } else if (std::holds_alternative<T *>(other->value_) ||
+                            std::holds_alternative<T *>(value_)) {
+                    QUINT_ERROR("Inconsistent StmtFiled value types: a pointer value is compared "
+                                "to a non-pointer value.")
+                    return false;
+                } else {
+                    return std::get<T>(other->value_) == std::get<T>(value_);
+                }
+            } else {
+                return false;
+            }
+        }
+    };
+
+    class StmtFieldManager {
+    private:
+        Stmt *stmt_;
+
+    public:
+        std::vector<std::unique_ptr<StmtField>> fields;
+
+        explicit StmtFieldManager(Stmt *stmt) : stmt_(stmt) {
+        }
+
+        template<typename T>
+        void operator()(const char *key, T &&value);
+
+        template<typename T, typename... Args>
+        void operator()(const char *key_, T &&t, Args **...rest) {
+            std::string key(key_);
+            size_t pos = key.find(',');
+            std::string first_name = key.substr(0, pos);
+            std::string rest_names =
+                    key.substr(pos + 2, int(key.size()) - (int)pos - 2);
+            this->operator()(first_name.c_str(), std::forward<T>(t));
+            this->operator()(rest_names.c_str(), std::forward<Args>(rest)...);
+        }
+
+        bool equal(StmtFieldManager &other) const;
+    };
+
+#define QUINT_STMT_DEF_FIELDS(...)  \
+    template <typename S>           \
+    void io(S &serializer) const {  \
+        QUINT_IO(__VA_ARGS__);      \
+    }
+
+#define QUINT_STMT_REG_FIELDS \
+    mark_fields_registered(); \
+    io(field_manager)
+
     class Stmt : public IRNode {
     protected:
         std::vector<Stmt **> operands;
 
     public:
+        StmtFieldManager field_manager;
         static std::atomic<int> instance_id_counter;
         int instance_id;
         int id;

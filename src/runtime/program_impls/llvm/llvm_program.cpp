@@ -2,6 +2,7 @@
 // Created by BY210033 on 2023/3/22.
 //
 #include "runtime/program_impls/llvm/llvm_program.h"
+#include "program/program.h"
 
 namespace quint::lang {
 
@@ -18,6 +19,18 @@ namespace quint::lang {
 
     void LLVMProgramImpl::prepare_runtime_context(RuntimeContext *ctx) {
         ProgramImpl::prepare_runtime_context(ctx);
+    }
+
+    FunctionType LLVMProgramImpl::compile(Kernel *kernel) {
+
+        return quint::lang::FunctionType();
+    }
+
+    LLVMProgramImpl *get_llvm_program(Program *prog) {
+        LLVMProgramImpl *llvm_prog =
+                dynamic_cast<LLVMProgramImpl *>(prog->get_program_impl());
+        QUINT_ASSERT(llvm_prog != nullptr)
+        return llvm_prog;
     }
 
 }

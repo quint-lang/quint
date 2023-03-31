@@ -92,6 +92,20 @@ namespace quint::lang {
 
     };
 
+    Expr cast(const Expr &input, DataType dt);
+
+    template<typename T>
+    Expr cast(const Expr &input) {
+        return cast(input, get_data_type<T>());
+    }
+
+    Expr bit_cast(const Expr &input, DataType dt);
+
+    template<typename T>
+    Expr bit_cast(const Expr &input) {
+        return bit_cast(input, get_data_type<T>());
+    }
+
 }
 
 #endif //QUINT_EXPR_H

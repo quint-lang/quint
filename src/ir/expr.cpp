@@ -56,7 +56,15 @@ namespace quint::lang {
     }
 
     void Expr::type_check(CompileConfig *config) {
+        expr->type_check(config);
+    }
 
+    Expr lang::cast(const Expr &input, DataType dt) {
+        return Expr::make<UnaryOpExpression>(UnaryOpType::cast_value, input, dt);
+    }
+
+    Expr lang::bit_cast(const Expr &input, DataType dt) {
+        return Expr::make<UnaryOpExpression>(UnaryOpType::cast_bits, input, dt);
     }
 
 }

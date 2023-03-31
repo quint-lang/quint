@@ -6,19 +6,7 @@ from quint.utils.exceptions import QuintException
 from sys import version_info
 from textwrap import TextWrapper
 from quint.lang.qtype import QIntType
-
-
-class SrcInfoGuard:
-
-    def __init__(self, info_stack, info):
-        self.info_stack = info_stack
-        self.info = info
-
-    def __enter__(self):
-        self.info_stack.append(self.info)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.info_stack.pop()
+from quint.lang import runtime
 
 
 class ControlFlowStatus:
@@ -94,7 +82,7 @@ class Visitor:
                 error_msg = f'Unsupported node "{node.__class__.__name__}"'
                 raise QuintException(error_msg)
             info = ctx.get_pos_info(node) if isinstance(node, (ast.stmt, ast.expr)) else ""
-            with ctx.src_info_guard(info):
+            with runtime.get_runtime().src_info_guard(info):
                 return method(ctx, node)
         except Exception:
             raise QuintException("Compiler quint kernel error")
@@ -133,9 +121,6 @@ class ASTTransformerContext:
         self.global_vars = global_vars
         self.control_flow_status = ControlFlowStatus()
         self.control_scope = []
-
-    def src_info_guard(self, info):
-        return SrcInfoGuard(self.src_info_stack, info)
 
     def variable_scope_guard(self):
         return VariableScopeGuard(self.local_scopes)

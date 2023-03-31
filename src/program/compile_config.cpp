@@ -14,6 +14,7 @@ namespace quint::lang {
         use_llvm = true;
         kernel_profiler = false;
         verbose = true;
+        fast_math = true;
         gpu_max_reg = 0;
         packed = true;
         print_ir = false;
@@ -23,6 +24,12 @@ namespace quint::lang {
 
         cpu_max_num_threads = std::thread::hardware_concurrency();
         random_seed = 0;
+
+        // LLVM backend options
+        print_struct_llvm_ir = false;
+        print_kernel_llvm_ir = false;
+        print_kernel_nvptx = false;
+        print_kernel_llvm_ir_optimized = false;
     }
 
 }

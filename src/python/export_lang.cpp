@@ -16,6 +16,7 @@
 #include "ir/frontend_ir.h"
 #include "python/export.h"
 #include "program/program.h"
+#include "ir/expression_ops.h"
 
 namespace quint {
 
@@ -80,7 +81,13 @@ namespace quint {
               py::return_value_policy::reference);
 
         // todo finish ASTBuilder
-        py::class_<ASTBuilder>(m, "ASTBuilder");
+        py::class_<ASTBuilder>(m, "ASTBuilder")
+            .def("create_print", &ASTBuilder::create_print)
+            .def("begin_frontend_if", &ASTBuilder::begin_frontend_if)
+            .def("begin_frontend_if_true", &ASTBuilder::begin_frontend_if_true)
+            .def("begin_frontend_if_false", &ASTBuilder::begin_frontend_if_false)
+            .def("pop_scope", &ASTBuilder::pop_scope)
+            .def("expr_var", &ASTBuilder::make_var);
 
         py::class_<Program>(m, "Program")
             .def(py::init<>())
@@ -132,7 +139,8 @@ namespace quint {
         expr.def("snode", &Expr::snode, py::return_value_policy::reference)
             .def("set_tb", &Expr::set_tb)
             .def("set_adjoint", &Expr::set_adjoint)
-            .def("set_dual", &Expr::set_dual);
+            .def("set_dual", &Expr::set_dual)
+            .def("type_check", &Expr::type_check);
 
         py::class_<SNode>(m, "SNode")
             .def(py::init<>());
@@ -141,9 +149,79 @@ namespace quint {
 
         py::class_<Stmt>(m, "Stmt");
 
+        m.def("value_cast", static_cast<Expr (*)(const Expr &expr, DataType)>(cast));
 
         m.def("make_arg_load_expr",
               Expr::make<ArgLoadExpression, int, const DataType &, bool>);
+
+        m.def("make_const_expr_int",
+              Expr::make<ConstExpression, const DataType &, int64>);
+
+        m.def("make_const_expr_fp",
+              Expr::make<ConstExpression, const DataType &, float64>);
+
+#define DEFINE_EXPRESSION_OP(x) m.def("expr_" #x, expr_##x);
+        DEFINE_EXPRESSION_OP(neg)
+        DEFINE_EXPRESSION_OP(sqrt)
+        DEFINE_EXPRESSION_OP(round)
+        DEFINE_EXPRESSION_OP(floor)
+        DEFINE_EXPRESSION_OP(ceil)
+        DEFINE_EXPRESSION_OP(abs)
+        DEFINE_EXPRESSION_OP(sin)
+        DEFINE_EXPRESSION_OP(asin)
+        DEFINE_EXPRESSION_OP(cos)
+        DEFINE_EXPRESSION_OP(acos)
+        DEFINE_EXPRESSION_OP(tan)
+        DEFINE_EXPRESSION_OP(tanh)
+        DEFINE_EXPRESSION_OP(inv)
+        DEFINE_EXPRESSION_OP(rcp)
+        DEFINE_EXPRESSION_OP(rsqrt)
+        DEFINE_EXPRESSION_OP(exp)
+        DEFINE_EXPRESSION_OP(log)
+
+        DEFINE_EXPRESSION_OP(select)
+        DEFINE_EXPRESSION_OP(ifte)
+
+        DEFINE_EXPRESSION_OP(cmp_le)
+        DEFINE_EXPRESSION_OP(cmp_lt)
+        DEFINE_EXPRESSION_OP(cmp_ge)
+        DEFINE_EXPRESSION_OP(cmp_gt)
+        DEFINE_EXPRESSION_OP(cmp_ne)
+        DEFINE_EXPRESSION_OP(cmp_eq)
+
+        DEFINE_EXPRESSION_OP(bit_and)
+        DEFINE_EXPRESSION_OP(bit_or)
+        DEFINE_EXPRESSION_OP(bit_xor)
+        DEFINE_EXPRESSION_OP(bit_shl)
+        DEFINE_EXPRESSION_OP(bit_shr)
+        DEFINE_EXPRESSION_OP(bit_sar)
+        DEFINE_EXPRESSION_OP(bit_not)
+
+        DEFINE_EXPRESSION_OP(logic_not)
+        DEFINE_EXPRESSION_OP(logical_and)
+        DEFINE_EXPRESSION_OP(logical_or)
+
+        DEFINE_EXPRESSION_OP(add)
+        DEFINE_EXPRESSION_OP(sub)
+        DEFINE_EXPRESSION_OP(mul)
+        DEFINE_EXPRESSION_OP(div)
+        DEFINE_EXPRESSION_OP(truediv)
+        DEFINE_EXPRESSION_OP(floordiv)
+        DEFINE_EXPRESSION_OP(mod)
+        DEFINE_EXPRESSION_OP(max)
+        DEFINE_EXPRESSION_OP(min)
+        DEFINE_EXPRESSION_OP(atan2)
+        DEFINE_EXPRESSION_OP(pow)
+
+#undef DEFINE_EXPRESSION_OP
+
+
+#define PER_TYPE(x)                                                        \
+        m.attr(("DataType_" + data_type_name(PrimitiveType::x)).c_str()) = \
+            PrimitiveType::x;
+#include "inc/data_type.inc.h"
+
+#undef PER_TYPE
     }
 
 }

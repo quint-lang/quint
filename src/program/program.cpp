@@ -5,6 +5,7 @@
 #include "util/offline_cache.h"
 #include "system/timeline.h"
 #include "runtime/program_impls/llvm/llvm_program.h"
+#include "system/profiler.h"
 
 namespace quint::lang {
 
@@ -77,8 +78,13 @@ namespace quint::lang {
 
     }
 
-    FunctionType Program::compile(Kernel *kernel) {
-        return quint::lang::FunctionType();
+    FunctionType Program::compile(Kernel &kernel) {
+        auto start_t = Time::get_time();
+        QUINT_AUTO_PROF
+        auto ret = program_impl_->compile(&kernel);
+        QUINT_ASSERT(ret)
+        total_compilation_time_ += Time::get_time() - start_t;
+        return ret;
     }
 
     void Program::finalize() {

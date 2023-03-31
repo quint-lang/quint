@@ -66,7 +66,8 @@ namespace quint::lang {
     }
 
     void Kernel::compile() {
-
+        CurrentCallableGuard _(program, this);
+        compiled_ = program->compile(*this);
     }
 
     void Kernel::lower(bool to_executable) {

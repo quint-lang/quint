@@ -16,6 +16,7 @@ namespace quint::lang {
         bool use_llvm;
         bool kernel_profiler;
         bool verbose;
+        bool fast_math;
         int gpu_max_reg;
         bool packed;
         bool print_preprocessed_ir;
@@ -30,6 +31,12 @@ namespace quint::lang {
         bool timeline{false};
         int num_compile_threads{4};
         size_t cuda_stack_limit{8192};
+
+        // LLVM backend options
+        bool print_struct_llvm_ir;
+        bool print_kernel_llvm_ir;
+        bool print_kernel_llvm_ir_optimized;
+        bool print_kernel_nvptx;
 
         // Offline cache options
         bool offline_cache{false};

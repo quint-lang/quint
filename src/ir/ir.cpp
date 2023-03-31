@@ -36,16 +36,26 @@ namespace quint::lang {
         return new_irnode;
     }
 
+    template<typename T>
+    void StmtFieldManager::operator()(const char *key, T &&value) {
+        using decay_T = typename std::decay<T>::type;
+//        if constexpr ((is_spe))
+    }
+
+    bool StmtFieldManager::equal(StmtFieldManager &other) const {
+        return false;
+    }
+
     std::atomic<int> Stmt::instance_id_counter(0);
 
-    Stmt::Stmt(): fields_registered(false) {
+    Stmt::Stmt(): field_manager(this), fields_registered(false) {
         parent = nullptr;
         instance_id = instance_id_counter++;
         id = instance_id;
         erased = false;
     }
 
-    Stmt::Stmt(const Stmt &stmt): fields_registered(false) {
+    Stmt::Stmt(const Stmt &stmt): field_manager(this), fields_registered(false) {
         parent = stmt.parent;
         instance_id = instance_id_counter++;
         id = instance_id;

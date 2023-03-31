@@ -7,6 +7,7 @@
 
 #include "program/compile_config.h"
 #include "program/kernel_profiler.h"
+#include "program/kernel.h"
 
 namespace quint::lang {
 
@@ -17,6 +18,8 @@ namespace quint::lang {
 
     public:
         explicit ProgramImpl(CompileConfig &config);
+
+        virtual FunctionType compile(Kernel *kernel) = 0;
 
         virtual void prepare_runtime_context(RuntimeContext *ctx) {
         }

@@ -5,6 +5,9 @@
 #ifndef QUINT_SNODE_H
 #define QUINT_SNODE_H
 
+#include "ir/expr.h"
+#include "ir/type.h"
+
 namespace quint::lang {
 
     class SNode {
@@ -14,6 +17,10 @@ namespace quint::lang {
         class GradInfoProvider {
 
         };
+
+        std::string name;
+
+        std::string get_node_type_name_hinted() const;
     };
 
 }
