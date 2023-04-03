@@ -43,6 +43,8 @@ namespace quint::lang {
 
             KernelCacheData clone() const;
         };
+
+        std::unordered_map<std::string, KernelCacheData> kernels;
     };
 
     class LLVMOfflineCacheFileReader {

@@ -580,6 +580,9 @@ namespace quint {
         }
     };
 
+    using BinaryOutputSerializer = BinarySerializer<true>;
+    using BinaryInputSerializer = BinarySerializer<false>;
+
     class TextSerializer : public Serializer {
     public:
         std::string data;

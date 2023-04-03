@@ -19,6 +19,9 @@
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Transforms/IPO/Internalize.h"
 #include "llvm/Transforms/IPO/GlobalDCE.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/Bitcode/BitcodeReader.h"
+#include "llvm/Linker/Linker.h"
 
 
 namespace quint::lang {
@@ -60,7 +63,9 @@ namespace quint::lang {
     }
 
     llvm::LLVMContext *QuintLLVMContext::get_this_thread_context() {
-        return nullptr;
+        ThreadLocalData *data = get_this_thread_data();
+        QUINT_ASSERT(data->llvm_context)
+        return data->llvm_context;
     }
 
     llvm::orc::ThreadSafeContext *QuintLLVMContext::get_this_thread_safe_context() {
@@ -99,6 +104,15 @@ namespace quint::lang {
         manager.run(*module, ana);
     }
 
+    void QuintLLVMContext::fetch_this_thread_struct_module() {
+        ThreadLocalData *data = get_this_thread_data();
+        if (data->struct_modules.empty()) {
+            for (auto &[id, mod] : main_thread_data_->struct_modules) {
+                data->struct_modules[id] = clone_module_to_this_thread_context(mod.get());
+            }
+        }
+    }
+
     llvm::Function *QuintLLVMContext::get_runtime_function(const std::string &name) {
         return nullptr;
     }
@@ -122,13 +136,136 @@ namespace quint::lang {
         return nullptr;
     }
 
+    std::unique_ptr<llvm::Module> QuintLLVMContext::clone_module_to_this_thread_context(llvm::Module *module) {
+        QUINT_TRACE("Cloning struct module");
+        QUINT_ASSERT(module)
+        auto this_context = get_this_thread_context();
+        return clone_module_to_context(module, this_context);
+    }
+
+    void QuintLLVMContext::add_struct_for_func(llvm::Module *module, int tls_size) {
+        auto func_name = get_struct_for_func_name(tls_size);
+        if (module->getFunction(func_name)) {
+            return;
+        }
+        auto struct_for_func = module->getFunction("parallel_struct_for");
+        auto &llvm_context = module->getContext();
+        auto value_map = llvm::ValueToValueMapTy();
+        auto patched_struct_for_func =
+                llvm::CloneFunction(struct_for_func, value_map);
+        patched_struct_for_func->setName(func_name);
+
+        int num_found_alloca = 0;
+        llvm::AllocaInst *alloca = nullptr;
+
+        auto char_type = llvm::Type::getInt8Ty(llvm_context);
+
+        for (auto &bb : *patched_struct_for_func) {
+            for (llvm::Instruction &inst : bb) {
+                auto now_alloca = llvm::dyn_cast<llvm::AllocaInst>(&inst);
+                if (!now_alloca || now_alloca->getAlign().value() != 8)
+                    continue;
+                auto alloca_type = now_alloca->getAllocatedType();
+                if (alloca_type->isArrayTy() && alloca_type->getArrayNumElements() == 1 &&
+                    alloca_type->getArrayElementType() == char_type) {
+                    alloca = now_alloca;
+                    num_found_alloca++;
+                }
+            }
+        }
+
+        QUINT_ASSERT(num_found_alloca == 1 && alloca)
+        auto new_type = llvm::ArrayType::get(char_type, tls_size);
+        {
+            llvm::IRBuilder<> builder(alloca);
+            auto *new_alloca = builder.CreateAlloca(new_type);
+            new_alloca->setAlignment(llvm::Align(8));
+            QUINT_ASSERT(alloca->hasOneUse())
+            auto *gep = llvm::cast<llvm::GetElementPtrInst>(alloca->user_back());
+            QUINT_ASSERT(gep->getPointerOperand() == alloca)
+            std::vector<llvm::Value *> indices(gep->idx_begin(), gep->idx_end());
+            builder.SetInsertPoint(gep);
+            auto *new_gep = builder.CreateInBoundsGEP(new_type, new_alloca, indices);
+            gep->replaceAllUsesWith(new_gep);
+            gep->eraseFromParent();
+            alloca->eraseFromParent();
+        }
+    }
+
+    std::string QuintLLVMContext::get_struct_for_func_name(int tls_size) {
+        return "parallel_struct_for_" + std::to_string(tls_size);
+    }
+
+    LLVMCompiledKernel QuintLLVMContext::link_compiled_tasks(std::vector<std::unique_ptr<LLVMCompiledTask>> data_list) {
+        LLVMCompiledKernel linked;
+        std::unordered_set<int> used_tree_ids;
+        std::unordered_set<int> tls_sizes;
+        std::unordered_set<std::string> offloaded_names;
+        auto mod = new_module("kernel", linking_context_data->llvm_context);
+        llvm::Linker linker(*mod);
+        for (auto &datum : data_list) {
+            for (auto tree_id : datum->used_tree_ids) {
+                used_tree_ids.insert(tree_id);
+            }
+            for (auto tls_size : datum->struct_for_tls_sizes) {
+                tls_sizes.insert(tls_size);
+            }
+            for (auto &task : datum->tasks) {
+                offloaded_names.insert(task.name);
+                linked.tasks.push_back(std::move(task));
+            }
+            linker.linkInModule(clone_module_to_context(
+                    datum->module.get(), linking_context_data->llvm_context));
+        }
+        for (auto tree_id : used_tree_ids) {
+            linker.linkInModule(
+                    llvm::CloneModule(*linking_context_data->struct_modules[tree_id]),
+                    llvm::Linker::LinkOnlyNeeded | llvm::Linker::OverrideFromSrc);
+        }
+        auto runtime_module =
+                llvm::CloneModule(*linking_context_data->runtime_module);
+        for (auto tls_size : tls_sizes) {
+            add_struct_for_func(runtime_module.get(), tls_size);
+        }
+        linker.linkInModule(
+                std::move(runtime_module),
+                llvm::Linker::LinkOnlyNeeded | llvm::Linker::OverrideFromSrc);
+        eliminate_unused_functions(mod.get(), [&](std::string func_name) -> bool {
+            return offloaded_names.count(func_name);
+        });
+        linked.module = std::move(mod);
+        return linked;
+    }
+
     std::unique_ptr<llvm::Module>
     QuintLLVMContext::clone_module_to_context(llvm::Module *module, llvm::LLVMContext *target_context) {
-        return std::unique_ptr<llvm::Module>();
+        std::string bitcode;
+        {
+            std::lock_guard<std::mutex> _(mut_);
+            llvm::raw_string_ostream sos(bitcode);
+            llvm::WriteBitcodeToFile(*module, sos);
+        }
+
+        auto cloned = llvm::parseBitcodeFile(
+                llvm::MemoryBufferRef(bitcode, "runtime_bitcode"), *target_context);
+        if (!cloned) {
+            auto error = cloned.takeError();
+            QUINT_ERROR("Bitcode cloned failed")
+        }
+        return std::move(cloned.get());
     }
 
     QuintLLVMContext::ThreadLocalData *QuintLLVMContext::get_this_thread_data() {
-        return nullptr;
+        std::lock_guard<std::mutex> _(thread_map_mut_);
+        auto tid = std::this_thread::get_id();
+        if (per_thread_data_.find(tid) == per_thread_data_.end()) {
+            std::stringstream ss;
+            ss << tid;
+            QUINT_TRACE("Creating thread local data for thread {}", ss.str());
+            per_thread_data_[tid] = std::make_unique<ThreadLocalData>(
+                    std::make_unique<llvm::orc::ThreadSafeContext>(std::make_unique<llvm::LLVMContext>()));
+        }
+        return per_thread_data_[tid].get();
     }
 
 }

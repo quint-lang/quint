@@ -4,3 +4,15 @@ target_include_directories(UnComputeTest PRIVATE ${PROJECT_SOURCE_DIR}/tpl/eigen
 target_include_directories(UnComputeTest PRIVATE ${PROJECT_SOURCE_DIR}/tpl/argparse)
 target_include_directories(UnComputeTest PRIVATE ${PROJECT_SOURCE_DIR}/tpl/spdlog/include)
 target_link_libraries(UnComputeTest quint_core)
+
+
+add_executable(MLIRTest MLIRTest.cpp)
+target_include_directories(MLIRTest PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(MLIRTest PRIVATE ${PROJECT_SOURCE_DIR}/tpl/eigen)
+target_include_directories(MLIRTest PRIVATE ${PROJECT_SOURCE_DIR}/tpl/argparse)
+target_include_directories(MLIRTest PRIVATE ${PROJECT_SOURCE_DIR}/tpl/spdlog/include)
+target_include_directories(MLIRTest PRIVATE "${LLVM_BINARY_DIR}/include" "${LLVM_INCLUDE_DIR}")
+target_include_directories(MLIRTest PRIVATE ${MLIR_INCLUDE_DIRS})
+target_include_directories(MLIRTest PRIVATE ${PROJECT_BINARY_DIR}/include)
+target_link_libraries(MLIRTest quint_core)
+target_link_libraries(MLIRTest quint-mlir-api)

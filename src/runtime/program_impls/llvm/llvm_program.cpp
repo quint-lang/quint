@@ -3,6 +3,7 @@
 //
 #include "runtime/program_impls/llvm/llvm_program.h"
 #include "program/program.h"
+#include "codegen/codegen.h"
 
 namespace quint::lang {
 
@@ -22,8 +23,8 @@ namespace quint::lang {
     }
 
     FunctionType LLVMProgramImpl::compile(Kernel *kernel) {
-
-        return quint::lang::FunctionType();
+        auto codegen = KernelCodeGen::create(kernel);
+        return codegen->compile_to_function();
     }
 
     LLVMProgramImpl *get_llvm_program(Program *prog) {
@@ -31,6 +32,19 @@ namespace quint::lang {
                 dynamic_cast<LLVMProgramImpl *>(prog->get_program_impl());
         QUINT_ASSERT(llvm_prog != nullptr)
         return llvm_prog;
+    }
+
+    void LLVMProgramImpl::cache_kernel(const std::string &kernel_key, const LLVMCompiledKernel &data,
+                                       std::vector<LLVMLaunchArgInfo> &&args) {
+        if (cache_data_->kernels.find(kernel_key) != cache_data_->kernels.end()) {
+            return;
+        }
+        auto &kernel_cache = cache_data_->kernels[kernel_key];
+        kernel_cache.kernel_key = kernel_key;
+        kernel_cache.compiled_data = data.clone();
+        kernel_cache.args = std::move(args);
+        kernel_cache.created_at = std::time(nullptr);
+        kernel_cache.last_used_at = std::time(nullptr);
     }
 
 }

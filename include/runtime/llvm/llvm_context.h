@@ -59,6 +59,7 @@ namespace quint::lang {
                 llvm::Module *module,
                 std::function<bool(const std::string &)> export_indicator);
 
+        void fetch_this_thread_struct_module();
         llvm::Function *get_runtime_function(const std::string &name);
         llvm::Type *get_runtime_type(const std::string &name);
 
@@ -68,10 +69,21 @@ namespace quint::lang {
 
         llvm::Module *get_this_thread_runtime_module();
 
+        std::unique_ptr<llvm::Module> clone_module_to_this_thread_context(llvm::Module *module);
+
+        void add_struct_for_func(llvm::Module *module, int tls_size);
+
+        static std::string get_struct_for_func_name(int tls_size);
+
+        LLVMCompiledKernel link_compiled_tasks(
+                std::vector<std::unique_ptr<LLVMCompiledTask>> data_list);
+
     private:
         std::unique_ptr<llvm::Module> clone_module_to_context(llvm::Module *module, llvm::LLVMContext *target_context);
 
         ThreadLocalData *get_this_thread_data();
+
+        std::unordered_map<std::thread::id, std::unique_ptr<ThreadLocalData>> per_thread_data_;
 
         std::thread::id main_thread_id_;
         ThreadLocalData *main_thread_data_{nullptr};

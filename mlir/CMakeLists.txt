@@ -62,7 +62,7 @@ set(LIBS
         LLVMLinker
         )
 
-add_mlir_library(quint-mlir-api SHARED ${SRC} LINK_LIBS PUBLIC ${LIBS})
+add_mlir_library(quint-mlir-api ${SRC} LINK_LIBS PUBLIC ${LIBS})
 
 target_include_directories(
         quint-mlir-api PUBLIC .

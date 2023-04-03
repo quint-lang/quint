@@ -22,6 +22,7 @@ file(GLOB QUINT_CORE_SRC
     "src/runtime/hvm/*.cpp"
     "src/codegen/*.cpp"
     "src/rhi/*.cpp"
+    "src/analysis/*.cpp"
 )
 
 if(QUINT_WITH_LLVM)
@@ -41,6 +42,7 @@ target_include_directories(${CORE_LIBRARY_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/in
 target_include_directories(${CORE_LIBRARY_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/tpl/eigen)
 target_include_directories(${CORE_LIBRARY_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/tpl/argparse)
 target_include_directories(${CORE_LIBRARY_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/tpl/spdlog/include)
+target_include_directories(${CORE_LIBRARY_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/tpl/PicoSHA2)
 
 if (QUINT_WITH_LLVM)
     set(LLVM_DIR "F://llvm-12//lib//cmake//llvm")

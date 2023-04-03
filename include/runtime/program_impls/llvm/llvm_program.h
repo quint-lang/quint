@@ -35,6 +35,10 @@ namespace quint::lang {
             return runtime_exec_.get();
         }
 
+        void cache_kernel(const std::string &kernel_key,
+                          const LLVMCompiledKernel &data,
+                          std::vector<LLVMLaunchArgInfo> &&args);
+
         ParallelExecutor compilation_workers;
     private:
         std::size_t num_snode_trees_processed_{0};
