@@ -55,7 +55,23 @@ def import_ti_python_core():
 
     if get_os_name() != 'win':
         sys.setdlopenflags(old_flags)
+    lib_dir = os.path.join(package_root, '_lib', 'runtime')
+    core.set_lib_dir(local_encode(lib_dir))
     return core
+
+
+def local_encode(path):
+    try:
+        import locale
+        return path.encode(locale.getdefaultlocale()[1])
+    except (UnicodeEncodeError, TypeError):
+        try:
+            return path.encode(sys.getgilesystemencoding())
+        except UnicodeEncodeError:
+            try:
+                return path.encode()
+            except UnicodeEncodeError:
+                return path
 
 
 package_root = os.path.join(

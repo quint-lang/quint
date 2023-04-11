@@ -16,6 +16,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR}/lib)
+#set(CMAKE_CXX_FLAGS "-g -O0")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 option(CMAKE_BUILD_TYPE "Release")
@@ -43,9 +44,44 @@ if (QUINT_WITH_PYTHON)
     include(cmake/PythonNumpyPybind11.cmake)
 endif ()
 
+# Setup CLANG_EXECUTABLE
+if (CLANG_EXECUTABLE)
+#    set(CLANG_EXECUTABLE "F:/llvm-15/bin/clang.exe")
+    message("CLANG_EXECUTABLE defined: ${CLANG_EXECUTABLE}")
+elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+    set (CLANG_EXECUTABLE ${CMAKE_CXX_COMPILER})
+    message("Clang executable using host compiler ${CLANG_EXECUTABLE}")
+else()
+#    set(CLANG_EXECUTABLE "F:/llvm-15/bin/clang.exe")
+    find_program(CLANG_EXECUTABLE NAMES clang-15 clang-14 clang-13 clang-12 clang-11 clang-10 clang-9 clang-8 clang-7 clang)
+    message("Clang executable found at ${CLANG_EXECUTABLE}")
+endif()
+
+if (NOT CLANG_EXECUTABLE)
+    message(FATAL_ERROR "Cannot find any clang executable.")
+endif()
+
+macro(check_clang_version)
+    execute_process(COMMAND ${CLANG_EXECUTABLE} --version OUTPUT_VARIABLE CLANG_VERSION_OUTPUT)
+    string(REGEX MATCH "([0-9]+)\\.[0-9]+(\\.[0-9]+)?" CLANG_VERSION "${CLANG_VERSION_OUTPUT}")
+    message("${CLANG_EXECUTABLE} --version: ${CLANG_VERSION}")
+
+    set(CLANG_VERSION_MAJOR "${CMAKE_MATCH_1}")
+endmacro()
+
+if (APPLE)
+    set(CLANG_OSX_FLAGS "-isysroot${CMAKE_OSX_SYSROOT}")
+endif()
+
+
+include(cmake/QuintCXXFlags.cmake)
 include(cmake/QuintCore.cmake)
 
-add_subdirectory(mlir)
+if (QUINT_WITH_LLVM)
+    add_subdirectory(quint/runtime/llvm/runtime_module)
+endif ()
+
+#add_subdirectory(mlir)
 add_subdirectory(tpl EXCLUDE_FROM_ALL)
 add_subdirectory(test)
 

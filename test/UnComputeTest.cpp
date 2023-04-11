@@ -1,8 +1,8 @@
 //
 // Created by BY210033 on 2023/2/7.
 //
-#include "runtime/hvm/data_structure.h"
-#include "runtime/hvm/qbs.h"
+#include "../quint/runtime/hvm/data_structure.h"
+#include "../quint/runtime/hvm/qbs.h"
 
 using namespace quint;
 
