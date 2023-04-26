@@ -1,0 +1,81 @@
+program: headers funcdef* EOF
+headers: package? imports*
+package: 'package' dotted_name
+dotted_name: NAME ('.' NAME)*
+imports: import_name | import_from
+import_name: 'import' dotted_as_names
+dotted_as_names: dotted_name ['as' NAME]? (',' dotted_name ['as' NAME]?)*
+import_from: 'from' (('.' | '...')* dotted_name | ('.' | '...)+)
+             'import' ('*' | '(' import_as_names ')' | import_as_names)
+import_as_names: NAME ['as' NAME]? (',' NAME ['as' NAME]?)*
+func_def: 'module' NAME parameters ['->' type]? '{' stmt* '}'
+parameters: '(' [parameter, (',' parameter)*]? ')'
+parameter: NAME ':' type ['=' expr]?
+type: 'qubit'
+    | 'bit'
+    | 'int'
+    | 'double'
+    | 'bool'
+    | 'string'
+    | 'unit'
+    | 'void'
+    | 'map'
+    | type '[]'
+    | 'tuple'
+    | 'complex'
+    | 'circuit'
+    | type_tuple '=>' type
+    | type '<' NUMBER '>'
+type_tuple: '(' type, (',' type)* ')'
+stmt: expr_stmt
+    | decl_stmt
+    | flow_stmt
+    | if_stmt
+    | while_stmt
+    | for_stmt
+    | try_stmt
+    | compound_stmt
+    | fail_stmt
+expr_stmt: expr ';'
+decl_stmt: 'let' NAME ':' type ['=' expr]? ';'
+flow_stmt: 'break' ';'
+          | 'continue' ';'
+          | 'return' expr? ';'
+compound_stmt: '{' stmt* '}'
+while_stmt: 'while' expr compound_stmt
+if_stmt: 'if' expr compound_stmt ('elif' expr compound_stmt)* [else compound_stmt]?
+for_stmt: 'for' NAME ':' expr compound_stmt
+try_stmt: 'try' compound_stmt ('catch' NAME compound_stmt)+ [else compound_stmt]?
+          ['finally' compound_stmt]?
+fail_stmt: 'panic' expr ';'
+expr: star_expr_list (augassign | '=') star_expr_list
+    | star_expr_list
+augassign: '+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>='
+star_expr_list: or_expr | star_expr
+or_expr: and_expr ('||' and_expr)*
+and_expr: not_expr ('&&' not_expr)*
+not_expr: '!' not_expr | comparison
+comparison: comp_expr (comp_op comp_expr)*
+comp_op: (<' | '>' | '<=' | '>=' | '==' | '!='
+star_expr: '*' expr
+comp_expr: xor_expr ('|' xor_expr)*
+xor_expr: caret_expr ('^' caret_expr)*
+caret_expr: shift_expr ('&' shift_expr)*
+shift_expr: arith_expr (('<<' | '>>') arith_expr)*
+arith_expr: term (('+' | '-') term)*
+term: factor (('*' | '/' | '%' | '//') factor)*
+factor: ('+' | '-' | '~') factor | power
+power: atom_expr ['**' factor]
+atom_expr: atom trailer*
+atom: NAME | NUMBER | STRING | 'true' | 'false' | 'null'
+    | '(' expr_list? ')'
+    | '[' expr_list? ']'
+    | '{' key_value_list? '}'
+expr_list: expr (',' expr)*
+key_value_list: key_value (',' key_value)*
+key_value: expr ':' expr
+trailer: '(' arg_list? ')' | '[' subscriptlist ']' | '.' NAME
+subscriptlist: subscript (',' subscript)*
+subscript: expr? ':' expr? [':' expr]?
+arg_list: arg (',' arg)*
+arg: expr '=' expr | expr

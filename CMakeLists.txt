@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(quint)
+project(quint
+        VERSION "1.0.0"
+        DESCRIPTION "high-level quantum programming language")
+set(QUINT_JIT_PYTHON_VERSION "0.1.1")
+configure_file("${PROJECT_SOURCE_DIR}/cmake/config.h.in"
+               "${PROJECT_SOURCE_DIR}/quint/config/config.h")
+configure_file("${PROJECT_SOURCE_DIR}/cmake/config.py.in"
+               "${PROJECT_SOURCE_DIR}/python/quint/version.py")
 
 #include_directories(${PROJECT_SOURCE_DIR}/include
 #        ${PROJECT_SOURCE_DIR}/tpl
@@ -82,6 +89,7 @@ if (QUINT_WITH_LLVM)
 endif ()
 
 #add_subdirectory(mlir)
+add_subdirectory(frontend)
 add_subdirectory(tpl EXCLUDE_FROM_ALL)
 add_subdirectory(test)
 

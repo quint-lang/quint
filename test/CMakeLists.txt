@@ -36,3 +36,5 @@ target_link_libraries(LLVMTest quint_core)
 #target_include_directories(LowerTest PRIVATE ${MLIR_INCLUDE_DIRS})
 #target_include_directories(LowerTest PRIVATE ${PROJECT_BINARY_DIR}/include)
 #target_link_libraries(LowerTest quint_core)
+
+add_subdirectory(frontend)
