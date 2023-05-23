@@ -20,6 +20,7 @@ file(GLOB QUINT_CORE_SRC
     "quint/program/*.cpp"
     "quint/transforms/*.cpp"
     "quint/runtime/hvm/*.cpp"
+    "quint/runtime/simulate/*.cpp"
     "quint/codegen/*.cpp"
     "quint/rhi/*.cpp"
     "quint/analysis/*.cpp"
