@@ -15,11 +15,19 @@
 #include "quint/config/config.h"
 #include "compiler/error.h"
 #include "util/front_logger.h"
+#include "parser/parser.h"
 
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Error.h"
+#include <llvm/ADT/StringRef.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/ErrorOr.h>
+#include <llvm/Support/MemoryBuffer.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/raw_os_ostream.h>
 namespace cl = llvm::cl;
+using namespace quint;
 
+static cl::opt<std::string> inputFilename(cl::Positional, cl::desc("<input qrunes file>"),
+                                          cl::init("-"), cl::value_desc("filename"));
 
 void versMsg(llvm::raw_ostream &out) {
     out << QUINT_VERSION_MAJOR << "." << QUINT_VERSION_MINOR << "." << QUINT_VERSION_PATCH
@@ -164,29 +172,55 @@ int otherMode(std::vector<const char *> &args) {
     return EXIT_SUCCESS;
 }
 
-int main(int argc, const char **argv) {
-    if (argc < 2)
-        showCommandsAndExit();
+//int main(int argc, const char **argv) {
+//    if (argc < 2)
+//        showCommandsAndExit();
+//
+//    cl::SetVersionPrinter(versMsg);
+//    std::vector<const char *> args{argv[0]};
+//    for (int i = 1; i < argc; i++) {
+//        args.push_back(argv[i]);
+//    }
+//
+//    std::string mode(argv[1]);
+//    std::string argv0 = std::string(args[0]) + " " + mode;
+//    if (mode == "run") {
+//        args[0] = argv0.data();
+//        return runMode(args);
+//    } else if (mode == "build") {
+//        const char *oldArgv0 = args[0];
+//        args[0] = argv0.data();
+//        return buildMode(args, oldArgv0);
+//    } else if (mode == "jit") {
+//        args[0] = argv0.data();
+//        return jitMode(args);
+//    } else {
+//        return otherMode(args);
+//    }
+//}
 
-    cl::SetVersionPrinter(versMsg);
-    std::vector<const char *> args{argv[0]};
-    for (int i = 1; i < argc; i++) {
-        args.push_back(argv[i]);
+std::unique_ptr<ast::ModuleScope> parseInputFile(llvm::StringRef filename) {
+    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileOrErr =
+        llvm::MemoryBuffer::getFileOrSTDIN(filename);
+    if (std::error_code ec = fileOrErr.getError())
+    {
+        llvm::errs() << "Could not open input file: " << ec.message() <<"\n";
+        return nullptr;
     }
+    auto buffer = fileOrErr.get()->getBuffer();
+    LexerBuffer lexer(buffer.begin(), buffer.end(), std::string(filename));
+    Parser parser(lexer);
+    return parser.parse();
+};
 
-    std::string mode(argv[1]);
-    std::string argv0 = std::string(args[0]) + " " + mode;
-    if (mode == "run") {
-        args[0] = argv0.data();
-        return runMode(args);
-    } else if (mode == "build") {
-        const char *oldArgv0 = args[0];
-        args[0] = argv0.data();
-        return buildMode(args, oldArgv0);
-    } else if (mode == "jit") {
-        args[0] = argv0.data();
-        return jitMode(args);
-    } else {
-        return otherMode(args);
-    }
+int run()
+{
+    auto moduleScope = parseInputFile(inputFilename);
+    return 0;
+}
+
+int main(int argc, char** argv)
+{
+    cl::ParseCommandLineOptions(argc, argv, "qrunes compiler\n");
+    return run();
 }

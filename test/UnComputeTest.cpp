@@ -59,8 +59,14 @@ void logicSort(std::vector<System>& states)
 
 int main()
 {
-    std::vector<System> system_states;
-    system_states.emplace_back();
-    TestQBS(system_states);
+//    std::vector<System> system_states;
+//    system_states.emplace_back();
+//    TestQBS(system_states);
 //    logicSort(system_states);
+    system("chcp 65001 > nul");
+
+    // Enable buffering to prevent VS from chopping up UTF-8 byte sequences
+    setvbuf(stdout, nullptr, _IOFBF, 1000);
+
+    std::cout << "|" + std::string(u8"\u27E9") << std::endl;
 }

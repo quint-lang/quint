@@ -9,7 +9,7 @@
 
 namespace quint {
 
-    enum Token :int {
+    enum Token : int {
         tok_semicolon = ';',
         tok_lparen= '(',
         tok_rparen = ')',
@@ -30,17 +30,31 @@ namespace quint {
         tok_amp = '&',
         tok_lt = '<',
         tok_gt = '>',
-        tok_eq = '=',
-        tok_notequal = '!=',
-        tok_le = '<=',
-        tok_ge = '>=',
+        tok_assign = '=',
+        tok_notequal = -35, // !=
+        tok_le = -36, // <=
+        tok_ge = -37, // >=
+        tok_pow = -38, // **
         tok_tilde = '~',
-        tok_lshift = '<<',
-        tok_rshift = '>>',
+        tok_lshift = -39, // <<
+        tok_rshift = -40, // >>
         tok_at = '@',
-        tok_arrow = '->',
-        tok_fatarrow = '=>',
+        tok_arrow = -41, // ->
+        tok_fatarrow = -42, // =>
+        tok_eq = -43, // ==
         tok_not = '!',
+        tok_aassign = -43, // +=
+        tok_sassign = -44, // -=
+        tok_massign = -45, // *=
+        tok_dassign = -46, // /=
+        tok_passign = -47, // %=
+        tok_augassign = -48, // &=
+        tok_vassign = -49, // |=
+        tok_cassign = -50, //^=
+        tok_rassign = -51, // >>=
+        tok_lassign = -52, // <<=
+
+
 
         tok_eof = -1,
         tok_name = -2,
@@ -54,7 +68,7 @@ namespace quint {
         tok_return = -10,
         tok_break = -11,
         tok_continue = -12,
-        tok_module = -13,
+        tok_func = -13,
         tok_from = -14,
         tok_import = -15,
         tok_as = -16,
@@ -76,7 +90,7 @@ namespace quint {
         tok_map = -30,
         tok_tuple = -31,
         tok_complex = -32,
-        tok_circuit = -33,
+        tok_closure = -33,
         tok_unknown = -34,
     };
 
@@ -89,7 +103,7 @@ namespace quint {
             {"return", tok_return},
             {"break", tok_break},
             {"continue", tok_continue},
-            {"module", tok_module},
+            {"func", tok_func},
             {"from", tok_from},
             {"import", tok_import},
             {"as", tok_as},
@@ -109,7 +123,7 @@ namespace quint {
             {"map", tok_map},
             {"tuple", tok_tuple},
             {"complex", tok_complex},
-            {"circuit", tok_circuit}
+            {"circuit", tok_closure}
     };
 
 }

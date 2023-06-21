@@ -17,6 +17,7 @@ namespace quint {
 
     struct Location {
         std::shared_ptr<std::string> file;
+        std::string rep;
         int line;
         int col;
     };
@@ -43,7 +44,7 @@ namespace quint {
     class Lexer {
     public:
         Lexer(std::string filename)
-            : last_location({ std::make_shared<std::string>(std::move(filename)), 0, 0 }) {}
+            : last_location({ std::make_shared<std::string>(std::move(filename)), "", 0, 0 }) {}
         virtual ~Lexer() = default;
 
         Token getCurToken() { return cur_tok; }
@@ -77,6 +78,13 @@ namespace quint {
             return cur_column;
         }
 
+        Location getLastLocation()
+        {
+            last_location.line = cur_line;
+            last_location.col = cur_column;
+            return last_location;
+        }
+
     private:
         virtual llvm::StringRef readNextLine() = 0;
 
@@ -97,6 +105,15 @@ namespace quint {
             return next_char;
         }
 
+        int peekChar(int distance) {
+            assert(distance >= 0);
+            if (cur_column - 1 + distance < cur_line_buffer.size()) {
+                return cur_line_buffer[cur_column-1+distance];
+            } else {
+                return '\0';
+            }
+        }
+
         void skip_whitespace() {
             while (isspace(last_char)) {
                 last_char = Token(getNextChar());
@@ -108,11 +125,197 @@ namespace quint {
 
             last_location.line = cur_line;
             last_location.col = cur_column;
+
+            if (last_char == '+') {
+                if (peekChar(1) == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_aassign;
+                } else {
+                    return tok_plus;
+                }
+            }
+
+            if (last_char == '-') {
+                auto advance = peekChar(1);
+                if (advance == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_sassign;
+                } else if (advance == '>') {
+                    last_char = Token(getNextChar());
+                    return tok_arrow;
+                } else {
+                    return tok_minus;
+                }
+            }
+
+            if (last_char == '*') {
+                auto advance = peekChar(1);
+                if (advance == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_massign;
+                } else if (advance == '*') {
+                    last_char = Token(getNextChar());
+                    return tok_pow;
+                }
+                return tok_star;
+            }
+
+            if (last_char == '/') {
+                if (peekChar(1) == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_dassign;
+                }
+                return tok_slash;
+            }
+
+            if (last_char == '^') {
+                if (peekChar(1) == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_cassign;
+                }
+                return tok_caret;
+            }
+
+            if (last_char == '%') {
+                if (peekChar(1) == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_passign;
+                }
+                return tok_percent;
+            }
+
+            if (last_char == '|') {
+                if (peekChar(1) == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_vassign;
+                }
+                return tok_vbar;
+            }
+
+            if (last_char == '&') {
+                if (peekChar(1) == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_augassign;
+                }
+                return tok_amp;
+            }
+
+            if (last_char == '(')
+                return tok_lparen;
+            if (last_char == ')')
+                return tok_rparen;
+            if (last_char == '{')
+                return tok_lbrace;
+            if (last_char == '}')
+                return tok_rbrace;
+            if (last_char == ']')
+                return tok_rbracket;
+            if (last_char == '[')
+                return tok_lbracket;
+            if (last_char == ':')
+                return tok_colon;
+            if (last_char == ',')
+                return tok_comma;
+            if (last_char == '.')
+                return tok_dot;
+
+            if (last_char == '~')
+                return tok_tilde;
+            if (last_char == '@')
+                return tok_at;
+
+            if (last_char == '<') {
+                auto advance = peekChar(1);
+                if (advance == '<') {
+                    last_char = Token(getNextChar());
+                    if (peekChar(2) == '=') {
+                        last_char = Token(getNextChar());
+                        return tok_lassign;
+                    }
+                    return tok_lshift;
+                } else if (advance == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_le;
+                }
+                return tok_lt;
+            }
+
+            if (last_char == '>') {
+                auto advance = peekChar(1);
+                if (advance == '>') {
+                    last_char = Token(getNextChar());
+                    if (peekChar(2) == '=') {
+                        last_char = Token(getNextChar());
+                        return tok_rassign;
+                    }
+                    return tok_rshift;
+                } else if (advance == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_ge;
+                }
+                return tok_gt;
+            }
+
+            if (last_char == '=') {
+                if (peekChar(1) == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_eq;
+                }
+                return tok_assign;
+            }
+
+            if (last_char == '!') {
+                if (peekChar(1) == '=') {
+                    last_char = Token(getNextChar());
+                    return tok_notequal;
+                }
+                return tok_not;
+            }
+
+
+            if (isalpha(last_char))
+            {
+                identifier = (char)last_char;
+                while (isalnum((last_char = Token(getNextToken()))) || last_char == '_')
+                    identifier += (char)last_char;
+                if (name_to_token.find(identifier) != name_to_token.end())
+                    return name_to_token[identifier];
+                return tok_name;
+            }
+
+            if (isdigit(last_char) || last_char == '.')
+            {
+                std::string numStr;
+                do {
+                    numStr += last_char;
+                    last_char = Token(getNextToken());
+                } while (isdigit(last_char) || last_char == '.');
+
+                num_value = strtod(numStr.c_str(), nullptr);
+                return tok_number;
+            }
+
+            if (last_char == '#')
+            {
+                do
+                {
+                    last_char = Token(getNextToken());
+                } while (last_char != EOF && last_char != '\r' && last_char != '\n');
+
+                if (last_char != EOF)
+                    return get_tok();
+            }
+
+            if (last_char == EOF)
+                return tok_eof;
+
+            last_char = Token(getNextToken());
+            return tok_unknown;
         }
 
         Location last_location;
         Token cur_tok = tok_eof;
-        llvm::StringRef identifier;
+        std::string identifier;
         double num_value = 0;
         Token last_char = Token(' ');
         int cur_line = 0;

@@ -8,7 +8,7 @@ dotted_as_names: dotted_name ['as' NAME]? (',' dotted_name ['as' NAME]?)*
 import_from: 'from' (('.' | '...')* dotted_name | ('.' | '...)+)
              'import' ('*' | '(' import_as_names ')' | import_as_names)
 import_as_names: NAME ['as' NAME]? (',' NAME ['as' NAME]?)*
-func_def: 'module' NAME parameters ['->' type]? '{' stmt* '}'
+func_def: 'func' NAME parameters ['->' type]? '{' stmt* '}'
 parameters: '(' [parameter, (',' parameter)*]? ')'
 parameter: NAME ':' type ['=' expr]?
 type: 'qubit'
