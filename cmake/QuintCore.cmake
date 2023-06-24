@@ -47,7 +47,8 @@ target_include_directories(${CORE_LIBRARY_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/tp
 target_include_directories(${CORE_LIBRARY_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/tpl/PicoSHA2)
 
 if (QUINT_WITH_LLVM)
-    set(LLVM_DIR "F://llvm-15//lib//cmake//llvm")
+#    set(LLVM_DIR "F://llvm-15//lib//cmake//llvm")
+    set(LLVM_DIR "D://dev//libs//taichi-llvm-15-msvc2019//lib//cmake//llvm")
     message("Getting LLVM_DIR=${LLVM_DIR} from the environment variable")
 
     find_package(LLVM REQUIRED HINTS "${LLVM_INCLUDE_DIR}")

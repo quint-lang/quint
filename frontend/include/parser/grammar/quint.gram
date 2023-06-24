@@ -26,7 +26,7 @@ type: 'qubit'
     | 'circuit'
     | type_tuple '=>' type
     | type '<' NUMBER '>'
-type_tuple: '(' type, (',' type)* ')'
+type_tuple: '(' type?, (',' type)* ')'
 stmt: expr_stmt
     | decl_stmt
     | flow_stmt
@@ -50,13 +50,15 @@ try_stmt: 'try' compound_stmt ('catch' NAME compound_stmt)+ [else compound_stmt]
 fail_stmt: 'panic' expr ';'
 expr: star_expr_list (augassign | '=') star_expr_list
     | star_expr_list
+    | lambda_expr
+lambda_expr: 'lambda' parameters ['->' type]? compound_stmt
 augassign: '+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>='
 star_expr_list: or_expr | star_expr
 or_expr: and_expr ('||' and_expr)*
 and_expr: not_expr ('&&' not_expr)*
 not_expr: '!' not_expr | comparison
-comparison: comp_expr (comp_op comp_expr)*
-comp_op: (<' | '>' | '<=' | '>=' | '==' | '!='
+comparison: comp_expr [comp_op comp_expr]?
+comp_op: (<' | '>' | '<=' | '>=' | '==' | '!=')
 star_expr: '*' expr
 comp_expr: xor_expr ('|' xor_expr)*
 xor_expr: caret_expr ('^' caret_expr)*
@@ -64,7 +66,7 @@ caret_expr: shift_expr ('&' shift_expr)*
 shift_expr: arith_expr (('<<' | '>>') arith_expr)*
 arith_expr: term (('+' | '-') term)*
 term: factor (('*' | '/' | '%' | '//') factor)*
-factor: ('+' | '-' | '~') factor | power
+factor: ('-' | '~') factor | power
 power: atom_expr ['**' factor]
 atom_expr: atom trailer*
 atom: NAME | NUMBER | STRING | 'true' | 'false' | 'null'
@@ -76,6 +78,6 @@ key_value_list: key_value (',' key_value)*
 key_value: expr ':' expr
 trailer: '(' arg_list? ')' | '[' subscriptlist ']' | '.' NAME
 subscriptlist: subscript (',' subscript)*
-subscript: expr? ':' expr? [':' expr]?
+subscript: expr? [':' expr]? [':' expr]?
 arg_list: arg (',' arg)*
 arg: expr '=' expr | expr

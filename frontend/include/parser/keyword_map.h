@@ -53,7 +53,8 @@ namespace quint {
         tok_cassign = -50, //^=
         tok_rassign = -51, // >>=
         tok_lassign = -52, // <<=
-
+        tok_land = -53,
+        tok_lor = -54,
 
 
         tok_eof = -1,
@@ -77,9 +78,13 @@ namespace quint {
         tok_catch = -19,
         tok_finally = -20,
         tok_panic = -21,
+        tok_true = -22,
+        tok_false = -55,
+        tok_chars = -56,
+        tok_elif = -57,
+        tok_lambda = -58,
 
         /// type
-        tok_qubit = -22,
         tok_bit = -23,
         tok_int = -24,
         tok_double = -25,
@@ -111,8 +116,11 @@ namespace quint {
             {"catch", tok_catch},
             {"finally", tok_finally},
             {"panic", tok_panic},
+            {"true", tok_true},
+            {"false", tok_false},
+            {"elif", tok_elif},
+            {"lambda", tok_lambda},
 
-            {"qubit", tok_qubit},
             {"bit", tok_bit},
             {"int", tok_int},
             {"double", tok_double},

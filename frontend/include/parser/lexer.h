@@ -7,11 +7,13 @@
 
 #include "llvm/ADT/StringRef.h"
 #include "parser/keyword_map.h"
+#include "llvm/ADT/StringExtras.h"
 
 #include <memory>
 #include <string>
 #include <vector>
 #include <cctype>
+#include <iostream>
 
 namespace quint {
 
@@ -57,7 +59,26 @@ namespace quint {
         }
 
         void consume(Token tok) {
-            assert(tok == cur_tok && "consume Token mismatch expectation");
+//            assert(tok == cur_tok && "consume Token mismatch expectation");
+            if (tok != cur_tok) {
+                std::cerr << "Parse error (line: "<< cur_line << ", col: " << cur_column << "): expect " <<
+                (char)tok << "but get " << (char)tok;
+                assert(0);
+            }
+            getNextToken();
+        }
+
+        void consumeParenPair()
+        {
+            assert(cur_tok == tok_lparen && "consume lparen mismatch");
+            assert(getNextToken() == tok_rparen && "consume rparen mismatch");
+            getNextToken();
+        }
+
+        void consumeBracketPair()
+        {
+            assert(cur_tok == tok_lbracket && "consume lbracket mismatch");
+            assert(getNextToken() == tok_rbracket && "consume rbracket mismatch");
             getNextToken();
         }
 
@@ -185,17 +206,27 @@ namespace quint {
             }
 
             if (last_char == '|') {
-                if (peekChar(1) == '=') {
+                auto advance = peekChar(1);
+                if (advance == '=') {
                     last_char = Token(getNextChar());
                     return tok_vassign;
+                }
+                if (advance == '|') {
+                    last_char = Token(getNextChar());
+                    return tok_lor;
                 }
                 return tok_vbar;
             }
 
             if (last_char == '&') {
-                if (peekChar(1) == '=') {
+                auto advance = peekChar(1);
+                if (advance == '=') {
                     last_char = Token(getNextChar());
                     return tok_augassign;
+                }
+                if (advance == '&') {
+                    last_char = Token(getNextChar());
+                    return tok_land;
                 }
                 return tok_amp;
             }
@@ -276,7 +307,7 @@ namespace quint {
             if (isalpha(last_char))
             {
                 identifier = (char)last_char;
-                while (isalnum((last_char = Token(getNextToken()))) || last_char == '_')
+                while (isalnum((last_char = Token(getNextChar()))) || last_char == '_')
                     identifier += (char)last_char;
                 if (name_to_token.find(identifier) != name_to_token.end())
                     return name_to_token[identifier];
@@ -288,11 +319,23 @@ namespace quint {
                 std::string numStr;
                 do {
                     numStr += last_char;
-                    last_char = Token(getNextToken());
+                    last_char = Token(getNextChar());
                 } while (isdigit(last_char) || last_char == '.');
 
                 num_value = strtod(numStr.c_str(), nullptr);
                 return tok_number;
+            }
+
+            if (last_char == '\"')
+            {
+                identifier = "";
+                last_char = Token(getNextChar());
+                while (last_char != '\"' && last_char != EOF) {
+                    identifier += (char)last_char;
+                    last_char = Token(getNextChar());
+                }
+
+                return tok_chars;
             }
 
             if (last_char == '#')

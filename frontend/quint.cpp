@@ -199,7 +199,7 @@ int otherMode(std::vector<const char *> &args) {
 //    }
 //}
 
-std::unique_ptr<ast::ModuleScope> parseInputFile(llvm::StringRef filename) {
+std::shared_ptr<ast::ModuleScope> parseInputFile(llvm::StringRef filename) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileOrErr =
         llvm::MemoryBuffer::getFileOrSTDIN(filename);
     if (std::error_code ec = fileOrErr.getError())

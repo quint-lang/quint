@@ -5,8 +5,10 @@
 
 namespace quint::ast {
 
-    FunctionScope::FunctionScope(const quint::Location &location, const std::string &name,
-                                 std::vector<std::unique_ptr<Param>> args, std::vector<std::unique_ptr<Stmt>> body)
-                                 : location(location), name(name), args(std::move(args)), body(std::move(body)) {}
+    FunctionScope::FunctionScope(const quint::Location &location, std::shared_ptr<IdentifierExpr> name,
+                                 std::vector<std::shared_ptr<Param>> args, std::vector<std::shared_ptr<Stmt>> body,
+                                 std::shared_ptr<Type> ret)
+                                 : location(location), name(std::move(name)), args(std::move(args)), body(std::move(body)),
+                                   ret(std::move(ret)){}
 
 }

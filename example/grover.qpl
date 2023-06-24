@@ -13,7 +13,7 @@ func groverSearch<n>(f: (uint<n>)=> bool<1>) -> int {
 
     H(cand);
 
-    for (i in range(iterations)) {
+    for (i : range(iterations)) {
         if (f(cand)) {
             phase(pi);
         }
@@ -28,7 +28,7 @@ func main() {
     let array = [2, 3, 2, 6, 5, 2, 7, 3];
     let f = lambda(x: uint<3>) -> bool<1> {
         let aux: uint<3>;
-        for (x in range(array.length)) {
+        for (x : range(array.length)) {
             if x == i {
                 aux = array[i];
             }
@@ -36,7 +36,7 @@ func main() {
         return aux == 2;
     }
     let res = [0, 0, 0, 0, 0, 0, 0, 0];
-    for (i in range(1000)) {
+    for (i : range(1000)) {
         let x = groverSearch(f);
         res[x] += 1;
     }

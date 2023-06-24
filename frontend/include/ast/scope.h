@@ -21,38 +21,40 @@ namespace quint::ast {
     };
 
     class BlockScope : public Scope {
-        std::vector<std::unique_ptr<Stmt>> stmts;
+        std::vector<std::shared_ptr<Stmt>> stmts;
         Location location;
     public:
-        BlockScope(Location loc, std::vector<std::unique_ptr<Stmt>> stmts);
+        BlockScope(Location loc, std::vector<std::shared_ptr<Stmt>> stmts);
 
         const Location& loc() { return location; }
 
-        llvm::ArrayRef<std::unique_ptr<Stmt>> getStmts() { return stmts; }
+        llvm::ArrayRef<std::shared_ptr<Stmt>> getStmts() { return stmts; }
     };
 
     class FunctionScope : public Scope {
         Location location;
-        std::string name;
-        std::vector<std::unique_ptr<Param>> args;
-        std::vector<std::unique_ptr<Stmt>> body;
+        std::shared_ptr<IdentifierExpr> name;
+        std::vector<std::shared_ptr<Param>> args;
+        std::shared_ptr<Type> ret;
+        std::vector<std::shared_ptr<Stmt>> body;
     public:
-        FunctionScope(const Location &location, const std::string &name,
-                      std::vector<std::unique_ptr<Param>> args, std::vector<std::unique_ptr<Stmt>> body);
+        FunctionScope(const Location &location, std::shared_ptr<IdentifierExpr> name,
+                      std::vector<std::shared_ptr<Param>> args, std::vector<std::shared_ptr<Stmt>> body,
+                      std::shared_ptr<Type> ret);
 
         const Location loc() { return location; }
 
-        llvm::StringRef getName() const { return name; }
+        std::string getName() const { return name->getName(); }
 
-        llvm::ArrayRef<std::unique_ptr<Param>> getArgs() { return args; }
+        llvm::ArrayRef<std::shared_ptr<Param>> getArgs() { return args; }
 
-        llvm::ArrayRef<std::unique_ptr<Stmt>> getBody() { return body; }
+        llvm::ArrayRef<std::shared_ptr<Stmt>> getBody() { return body; }
     };
 
     class ModuleScope : public Scope {
-        std::vector<std::unique_ptr<FunctionScope>> functions;
+        std::vector<std::shared_ptr<FunctionScope>> functions;
     public:
-        ModuleScope(std::vector<std::unique_ptr<FunctionScope>> functions)
+        ModuleScope(std::vector<std::shared_ptr<FunctionScope>> functions)
             : functions(std::move(functions)) {}
 
         auto begin() -> decltype(functions.begin())

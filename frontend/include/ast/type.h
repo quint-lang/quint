@@ -28,7 +28,7 @@ namespace quint::ast {
             Map,
             Func,
             Complex,
-            Circuit
+            Void
         };
 
         Type(): kind(Bool) {}
@@ -60,6 +60,8 @@ namespace quint::ast {
         friend std::ostream &operator<<(std::ostream &os, const Type &obj) {
             return os << obj.toString();
         }
+
+        virtual ~Type() {}
 
     private:
         TypeKind kind;
@@ -173,7 +175,7 @@ namespace quint::ast {
             size_t hash_value = 0x9e3779bb;
             for (const auto& ty : types) {
                 if (ty) {
-                    hash_value ^= std::hash<Type>()(*ty) + 0x9e3779bb +(hash_value << 6) +(hash_value >> 2);
+                    hash_value ^= std::hash<Type>()(*ty) + 0x9e3779bb + (hash_value << 6) +(hash_value >> 2);
                 }
             }
             return hash_value;
@@ -347,7 +349,9 @@ namespace quint::ast {
 
     class DoubleTy : public Type {
     public:
-        DoubleTy(): Type(Double) {}
+        bool classical;
+        int size = 0;
+        DoubleTy(): Type(Double) , classical(true){}
 
         bool operator==(Type &other) const override {
             if (isa<DoubleTy>(other)) {
@@ -385,7 +389,7 @@ namespace quint::ast {
         int size;
         bool classical;
     public:
-        explicit UintTy(bool classical = false, int size = 0): classical(classical), size(size), Type(Uint) {}
+        explicit UintTy(bool classical = true, int size = 0): classical(classical), size(size), Type(Uint) {}
 
         bool operator==(Type &other) const override {
             if (isa<UintTy>(other)) {
@@ -435,15 +439,29 @@ namespace quint::ast {
 
     class ClosureTy : public Type {
     public:
-        std::vector<std::unique_ptr<Type>> args;
-        std::unique_ptr<Type> ret;
+        std::vector<std::shared_ptr<Type>> args;
+        std::shared_ptr<Type> ret;
         bool classical;
 
-        ClosureTy(std::vector<std::unique_ptr<Type>> args, std::unique_ptr<Type> ret)
+        ClosureTy(std::vector<std::shared_ptr<Type>> args, std::shared_ptr<Type> ret)
             : args(std::move(args)), ret(std::move(ret)), Type(Func) {}
 
         bool operator==(Type &other) const override {
-            return Type::operator==(other);
+            if (isa<ClosureTy>(other)) {
+                auto *p = static_cast<ClosureTy*>(&other);
+                if (classical == p->classical && args.size() == p->args.size()) {
+                    if (!(*ret == *p->ret)) {
+                        return false;
+                    }
+                    for (size_t i = 0; i < args.size(); i++) {
+                        if (!(*args[i] == *(p->args[i])))
+                            return false;
+                    }
+                    return true;
+                }
+                return false;
+            }
+            return false;
         }
 
         std::string toString() const override {
@@ -455,7 +473,13 @@ namespace quint::ast {
         }
 
         size_t toHash() const override {
-            return Type::toHash();
+            size_t hash_value = 0x9e3779d7;
+            for (const auto &ty : args) {
+                if (ty)
+                    hash_value ^= std::hash<Type>()(*ty) + (hash_value << 6) +(hash_value >> 2);
+            }
+            hash_value ^= std::hash<Type>()(*ret) + (hash_value << 6) +(hash_value >> 2);
+            return hash_value;
         }
 
         bool isClassical() override {
@@ -471,15 +495,88 @@ namespace quint::ast {
         }
     };
 
-    class MapTy : public Type {
-        Type key;
-        Type value;
+    class VoidTy : public Type {
+    public:
+        bool classical;
+        VoidTy() : Type(Void), classical(true) {}
 
+        bool operator==(Type &other) const override {
+            if (isa<VoidTy>(other))
+                return true;
+            return false;
+        }
+
+        std::string toString() const override {
+            return "void";
+        }
+
+        bool classof(const type_info &info) const override {
+            return info == typeid(VoidTy);
+        }
+
+        size_t toHash() const override {
+            return std::hash<bool>()(classical) + 0x9e3779d9;
+        }
+
+        bool isClassical() override {
+            return true;
+        }
+
+        bool hasClassicalComponent() override {
+            return true;
+        }
+
+        Type *copyImpl() override {
+            return this;
+        }
     };
 
-    class TypeTy : public Type {
+    class ComplexTy : public Type {
+    public:
+        bool classical;
 
+        ComplexTy() : Type(Complex), classical(true) {}
+
+        bool operator==(Type &other) const override {
+            if (isa<ComplexTy>(other))
+                return true;
+            return false;
+        }
+
+        std::string toString() const override {
+            return "complex";
+        }
+
+        bool classof(const type_info &info) const override {
+            return info == typeid(ComplexTy);
+        }
+
+        size_t toHash() const override {
+            return std::hash<bool>()(classical) + 0x9e3779db;
+        }
+
+        bool isClassical() override {
+            return true;
+        }
+
+        bool hasClassicalComponent() override {
+            return true;
+        }
+
+        Type *copyImpl() override {
+            return this;
+        }
     };
+
+//    class MapTy : public Type {
+//        Type key;
+//        Type value;
+//
+//    };
+
+//    class TypeTy : public Type {
+//
+//    };
 
     bool isInt(ast::Type &ty);
 
